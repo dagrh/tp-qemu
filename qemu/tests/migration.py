@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 import types
 import re
@@ -118,6 +119,30 @@ def run(test, params, env):
     def mig_set_speed():
         mig_speed = params.get("mig_speed", "1G")
         return vm.monitor.migrate_set_speed(mig_speed)
+
+    def wait_for_migrate_progress(target):
+        """
+        Wait for migration progress to hit a target %
+        Note: We exit if we've gone onto another pass rather than wait
+        for a target we might never hit.
+        """
+        old_progress = 0
+        while True:
+            progress = vm.monitor.get_migrate_progress()
+            if (progress < old_progress or
+                    progress >= target):
+                break
+            # progress < old_progress indicates we must be on
+            # another pass (we could also check the sync count)
+            old_progress = progress
+            time.sleep(0.1)
+
+    def start_postcopy():
+        # Trigger the postcopy at some random point in the first pass
+        # our stress load varies a bit so we can't be sure whether
+        # the test will hit multiple passes reliably
+        wait_for_migrate_progress(random.randrange(90))
+        return vm.monitor.migrate_start_postcopy()
 
     def check_dma():
         dmesg_pattern = params.get("dmesg_pattern",
