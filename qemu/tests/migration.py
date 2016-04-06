@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 import types
 import re
@@ -118,6 +119,9 @@ def run(test, params, env):
     def mig_set_speed():
         mig_speed = params.get("mig_speed", "1G")
         return vm.monitor.migrate_set_speed(mig_speed)
+
+    def start_postcopy():
+        return vm.monitor.migrate_start_postcopy()
 
     def check_dma():
         dmesg_pattern = params.get("dmesg_pattern",
