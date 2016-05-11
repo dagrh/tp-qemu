@@ -32,7 +32,7 @@ def run(test, params, env):
     """
     def guest_stress_start(guest_stress_test):
         """
-        Start a stress test in guest, Could be 'iozone', 'dd', 'stress'
+        Start a stress test in guest, Could be 'iozone', 'dd', 'sh', 'stress'
 
         :param type: type of stress test.
         """
@@ -49,13 +49,20 @@ def run(test, params, env):
             args = (test, new_params, env)
             timeout = 60
         elif guest_stress_test == "dd":
-            vm = env.get_vm(env, params.get("main_vm"))
+            vm = env.get_vm(params["main_vm"])
             vm.verify_alive()
             session = vm.wait_for_login(timeout=login_timeout)
             func = session.cmd_output
             args = ("for((;;)) do dd if=/dev/zero of=/tmp/test bs=5M "
                     "count=100; rm -f /tmp/test; done",
                     login_timeout, logging.info)
+        elif guest_stress_test == "sh":
+            test_type = params.get("test_type")
+            vm = env.get_vm(params["main_vm"])
+            vm.verify_alive()
+            session = vm.wait_for_login(timeout=login_timeout)
+            func = session.cmd_output
+            args = (test_type, login_timeout, logging.info)
 
         logging.info("Start %s test in guest", guest_stress_test)
         bg = utils_test.BackgroundTest(func, args)
