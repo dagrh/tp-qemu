@@ -9,9 +9,10 @@ import ast
 
 from autotest.client.shared import error
 
+from avocado.core import exceptions
 from virttest import utils_misc
 from virttest import utils_test
-
+from virttest import qemu_monitor # For MonitorNotSupportedMigCapError
 
 @error.context_aware
 def run(test, params, env):
@@ -244,13 +245,20 @@ def run(test, params, env):
                     logging.info("Round %s ping..." % str(i / 2))
                 else:
                     logging.info("Round %s pong..." % str(i / 2))
-                vm.migrate(mig_timeout, mig_protocol, mig_cancel_delay,
-                           offline, check,
-                           migration_exec_cmd_src=mig_exec_cmd_src,
-                           migration_exec_cmd_dst=mig_exec_cmd_dst,
-                           migrate_capabilities=capabilities,
-                           mig_inner_cmd=inner_cmd,
-                           env=env)
+                try:
+                    vm.migrate(mig_timeout, mig_protocol, mig_cancel_delay,
+                               offline, check,
+                               migration_exec_cmd_src=mig_exec_cmd_src,
+                               migration_exec_cmd_dst=mig_exec_cmd_dst,
+                               migrate_capabilities=capabilities,
+                               mig_inner_cmd=inner_cmd,
+                               env=env)
+                except qemu_monitor.MonitorNotSupportedMigCapError as e:
+                    logging.info("Unknown capability: %s" % e)
+                    raise exceptions.TestSkipError(e)
+
+                except:
+                    raise
 
             # Set deamon thread action to stop after migrate
             params["action"] = "stop"
